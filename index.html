@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FutSassemburg</title>
+<style>
+:root{
+  --verde:#0e7c3a; --verde2:#0a5c2b; --bg:#f4f6f4; --card:#ffffff;
+  --texto:#152016; --sub:#5b6b5d; --borda:#dfe6df; --ouro:#e8b923; --erro:#c0392b;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#10160f; --card:#171f16; --texto:#eef2ee; --sub:#9db09f; --borda:#283428; }
+}
+:root[data-theme="dark"]{ --bg:#10160f; --card:#171f16; --texto:#eef2ee; --sub:#9db09f; --borda:#283428; }
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--texto);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+header{background:linear-gradient(135deg,var(--verde),var(--verde2));color:#fff;padding:18px 16px calc(18px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:5;}
+header h1{margin:0;font-size:1.4rem;}
+header p{margin:4px 0 0;font-size:.85rem;opacity:.9;}
+.wrap{max-width:760px;margin:0 auto;padding:16px;}
+.card{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px;margin-bottom:16px;}
+.card h2{margin:0 0 10px;font-size:1.05rem;}
+.card h3{margin:14px 0 8px;font-size:.95rem;color:var(--sub);}
+.badge{display:inline-block;background:var(--ouro);color:#3a2c00;font-weight:600;font-size:.75rem;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
+.jogo{border:1px solid var(--borda);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+.jogo .linha{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.times{font-weight:600;}
+.data{font-size:.8rem;color:var(--sub);}
+input[type=number]{width:48px;padding:6px;border:1px solid var(--borda);border-radius:6px;text-align:center;background:var(--bg);color:var(--texto);}
+input[type=text],input[type=date],input[type=time],select{padding:8px;border:1px solid var(--borda);border-radius:8px;background:var(--bg);color:var(--texto);width:100%;}
+button{background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;}
+button:hover{background:var(--verde2);}
+button.sec{background:var(--sub);}
+.linha-form{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
+.linha-form>*{flex:1;}
+table{width:100%;border-collapse:collapse;font-size:.88rem;}
+th,td{padding:6px 4px;text-align:left;border-bottom:1px solid var(--borda);}
+th{color:var(--sub);font-weight:600;}
+.pos1{color:var(--ouro);font-weight:700;}
+.msg{font-size:.85rem;color:var(--sub);}
+.erro{color:var(--erro);font-weight:600;}
+.pill{font-size:.75rem;padding:2px 8px;border-radius:20px;background:var(--borda);}
+.status-aberto{background:#d9f2df;color:#0a5c2b;}
+.status-fechado{background:#f2e0d9;color:#8a4a24;}
+.bloqueado{font-size:.82rem;color:var(--erro);margin-top:6px;}
+.torneio-tag{font-size:1.2rem;margin-right:6px;}
+#chatBox{max-height:260px;overflow-y:auto;border:1px solid var(--borda);border-radius:10px;padding:8px;margin-bottom:10px;background:var(--bg);}
+.msgChat{margin-bottom:8px;font-size:.88rem;}
+.msgChat b{color:var(--verde);}
+.msgChat.mine b{color:var(--ouro);}
+.msgChat .hora{font-size:.7rem;color:var(--sub);margin-left:6px;}
+.salas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.salas button{background:var(--borda);color:var(--texto);font-size:.8rem;padding:6px 10px;}
+.salas button.ativa{background:var(--verde);color:#fff;}
+.emojis{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.emojis button{background:transparent;border:1px solid var(--borda);font-size:1.1rem;padding:4px 8px;line-height:1;}
+.emojis button:hover{background:var(--borda);}
+.loginWrap{max-width:380px;margin:60px auto 0;}
+.tabsLogin{display:flex;gap:6px;margin-bottom:14px;}
+.tabsLogin button{flex:1;background:var(--borda);color:var(--texto);}
+.tabsLogin button.ativa{background:var(--verde);color:#fff;}
+footer{text-align:center;color:var(--sub);font-size:.75rem;padding:20px;}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+<header>
+  <h1>⚽ FutSassemburg</h1>
+  <p>Bolão de palpites entre a turma · 3 torneios</p>
+</header>
+<div class="wrap" id="app"><div class="card"><p class="msg">Carregando...</p></div></div>
+<footer>FutSassemburg · Grok, Mundial e Glória · grupos de 20</footer>
+
+<script>
+const TAMANHO_GRUPO = 20;
+const TORNEIOS = [
+  {id:'grok', nome:'Grok', trofeu:'🏆', reqTop:null, desc:'Torneio principal — todo mundo participa.'},
+  {id:'mundial', nome:'Mundial', trofeu:'🌍', reqTop:8, desc:'Só joga quem termina entre 1º e 8º do grupo no Grok.'},
+  {id:'gloria', nome:'Glória', trofeu:'👑', reqTop:16, desc:'Só joga quem termina entre 1º e 16º do grupo no Grok.'}
+];
+const CAPACIDADES = [20,50,100,150];
+function calcularInstancia(cap){
+  const membrosTipo = salaMembros.filter(m=>m.cap===cap);
+  let i=1;
+  while(membrosTipo.filter(m=>m.instancia===i).length >= cap) i++;
+  return i;
+}
+function instanciaAtualParaMim(cap){
+  const meu = salaMembros.find(m=>m.cap===cap && m.uid===me);
+  return meu ? meu.instancia : calcularInstancia(cap);
+}
+function instanciasExistentes(cap){
+  const membrosTipo = salaMembros.filter(m=>m.cap===cap);
+  const max = membrosTipo.reduce((mx,m)=>Math.max(mx,m.instancia||1),1);
+  const lista=[];
+  for(let i=1;i<=max;i++) lista.push({num:i, count:membrosTipo.filter(m=>m.instancia===i).length});
+  return lista;
+}
+const EMOJIS = ['⚽','🔥','👏','😂','😮','🎉','💪','👍','👎','❌','✅','🏆','😅','😭','🤔','👀','🥳','😡','🙌','⭐'];
+const ADMIN_EMAIL = 'claudineihonorio2020@gmail.com';
+
+// ======= COLE AQUI A CONFIGURAÇÃO DO SEU PROJETO FIREBASE =======
+const firebaseConfig = {
+  apiKey: "AIzaSyDr9vzFQPHnjHv5tfYxUZXRqeIk3ymqNu0",
+  authDomain: "futsassemburg.firebaseapp.com",
+  projectId: "futsassemburg",
+  storageBucket: "futsassemburg.firebasestorage.app",
+  messagingSenderId: "719868323935",
+  appId: "1:719868323935:web:ddac764f3e5deb84bfd3ea"
+};
+// ==================================================================
+
+let db=null, me=null, isAdmin=false, meuEmail=null, authModo='login', assinado=false;
+let games=[], guesses=[], players=[], chatMsgs=[], salaMembros=[], salaTipoAtual=20, avisoFixado=null;
+
+function makeDbShim(firestore){
+  return {
+    doc(path){
+      const ref = firestore.doc(path);
+      return {
+        set:(data)=>ref.set(data),
+        update:(data)=>ref.update(data),
+        delete:()=>ref.delete(),
+        onSnapshot(cb){ return ref.onSnapshot(snap=>{ cb(snap.exists?{id:snap.id,data:snap.data()}:null); }); }
+      };
+    },
+    collection(name){
+      const ref = firestore.collection(name);
+      return { onSnapshot(cb){ return ref.onSnapshot(snap=>{ cb(snap.docs.map(d=>({id:d.id, data:d.data()}))); }); } };
+    }
+  };
+}
+function meuNome(){ const p = players.find(x=>x.uid===me); return p ? p.name : 'Jogador'; }
+
+const app = document.getElementById('app');
+
+function fmtData(d){ if(!d) return ''; try{ return new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return d; } }
+function ord(n){ return n+'º'; }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function pontosJogo(jogo, palpite){
+  if(jogo.homeScore==null || jogo.awayScore==null || !palpite) return 0;
+  const hs=jogo.homeScore, as=jogo.awayScore, ph=palpite.home, pa=palpite.away;
+  if(ph==null||pa==null) return 0;
+  if(ph===hs && pa===as) return 3;
+  const real = hs>as?'C':hs<as?'F':'E', pal = ph>pa?'C':ph<pa?'F':'E';
+  return real===pal ? 1 : 0;
+}
+function torneioPontos(uid, torneioId){
+  let pts=0;
+  games.filter(g=>(g.torneio||'grok')===torneioId).forEach(g=>{
+    const gu = guesses.find(x=>x.gameId===g.id && x.uid===uid);
+    pts += pontosJogo(g, gu);
+  });
+  return pts;
+}
+function grokStandings(){
+  const porGrupo = {};
+  players.forEach(p=>{
+    const grp = p.group||1;
+    (porGrupo[grp]=porGrupo[grp]||[]).push({...p, pts:torneioPontos(p.uid,'grok')});
+  });
+  Object.values(porGrupo).forEach(a=>a.sort((x,y)=>y.pts-x.pts));
+  return porGrupo;
+}
+function grokRank(uid){
+  const gs = grokStandings();
+  for(const g of Object.values(gs)){ const i=g.findIndex(p=>p.uid===uid); if(i>-1) return i+1; }
+  return null;
+}
+function qualificados(reqTop){
+  const gs = grokStandings(); const lista=[];
+  Object.keys(gs).sort((a,b)=>a-b).forEach(g=>{ gs[g].forEach((p,i)=>{ if(i<reqTop) lista.push(p); }); });
+  return lista;
+}
+function gruposDoTorneio(torneioId){
+  const grupos = {};
+  if(torneioId==='grok'){
+    players.forEach(p=>{
+      const grp = p.group||1;
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,'grok')});
+    });
+  } else {
+    const reqTop = torneioId==='mundial'?8:16;
+    qualificados(reqTop).forEach((p,idx)=>{
+      const grp = Math.floor(idx/TAMANHO_GRUPO)+1;
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,torneioId)});
+    });
+  }
+  Object.values(grupos).forEach(a=>a.sort((x,y)=>y.pts-x.pts));
+  return grupos;
+}
+function elegivel(uid, torneioId){
+  if(torneioId==='grok') return true;
+  const t = TORNEIOS.find(t=>t.id===torneioId);
+  const r = grokRank(uid);
+  return r!=null && r<=t.reqTop;
+}
+function trofeuIcon(t){ return t.torneio==='grok'?'🏆':t.torneio==='mundial'?'🌍':'👑'; }
+function palpitesFechados(g){ return !!g.fechado; }
+
+function render(){
+  const meuPlayer = me ? players.find(p=>p.uid===me) : null;
+  let html = '';
+
+  if(avisoFixado){
+    html += `<div class="card" style="border-color:var(--ouro);"><h2>📌 Aviso</h2>
+      <p class="msg" style="white-space:pre-wrap;color:var(--texto);">${escapeHtml(avisoFixado.text)}</p>
+      ${isAdmin?`<button class="sec" onclick="apagarAviso()">🗑️ Apagar aviso</button>`:''}
+    </div>`;
+  }
+
+  html += `<div class="card" style="border-color:var(--ouro);text-align:center;">
+    <h2>💚 Ajude a manter o FutSassemburg no ar</h2>
+    <p class="msg">Doe R$ 6,99 por mês para manter a plataforma no ar!! O trabalho de colocar os jogos e entregar troféus é feito manualmente: peço a compreensão dos usúarios, Obrigado!!</p>
+    <a href="https://mpago.la/28SY3cG" target="_blank" rel="noopener"><button style="width:100%;">💳 Doar R$ 6,99</button></a>
+  </div>`;
+
+  html += `<div class="card"><h2>ℹ️ Como funciona o jogo</h2>
+    <p class="msg">✅ Acertou o placar exato: <b>+3 pontos</b><br>✅ Acertou só quem venceu (ou o empate), mas não o placar: <b>+1 ponto</b><br>❌ Errou tudo: 0 pontos.</p></div>`;
+
+  html += `<div class="card"><span class="badge">${players.length} jogador(es) cadastrados</span>
+    <p class="msg">Você é <b>${meuNome()}</b> (${meuEmail||''})${isAdmin?' — <b>Administrador</b>':''}</p>
+    <div class="linha-form"><button class="sec" onclick="sairDaConta()">Sair da conta</button></div></div>`;
+
+  if(isAdmin){
+    html += `<div class="card"><h2>📌 Mensagem fixada (aviso geral)</h2>
+      <div class="linha-form"><input type="text" id="avisoInput" placeholder="Escreva um aviso para todos" value="${escapeHtml(avisoFixado?avisoFixado.text:'')}"></div>
+      <div class="linha-form">
+        <button onclick="salvarAviso()">📌 Fixar mensagem</button>
+        ${avisoFixado?`<button class="sec" onclick="apagarAviso()">🗑️ Apagar aviso</button>`:''}
+      </div></div>`;
+  }
+
+  if(!meuPlayer){
+    html += `<div class="card"><h2>🙋 Criar perfil</h2>
+      <p class="msg">Escolha o nome que vai aparecer nos rankings, no chat e nos troféus.</p>
+      <div class="linha-form">
+        <input type="text" id="nickInput" placeholder="Seu nome no bolão">
+        <button onclick="criarPerfil()">Criar perfil</button>
+      </div>
+    </div>`;
+  } else {
+    const meusTrofeus = meuPlayer.trophies||[];
+    html += `<div class="card"><h2>🙋 Meu perfil</h2>
+      <p class="msg">Nome: <b>${escapeHtml(meuPlayer.name)}</b></p>
+      <h3>Meus troféus</h3>
+      <p class="msg">${meusTrofeus.length? meusTrofeus.map(trofeuIcon).join(' ') : 'Nenhum troféu ainda. Boa sorte! 🍀'}</p>
+    </div>`;
+  }
+
+  TORNEIOS.forEach(t=>{
+    const abertos = games.filter(g=>(g.torneio||'grok')===t.id && g.homeScore==null).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const encerrados = games.filter(g=>(g.torneio||'grok')===t.id && g.homeScore!=null).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const grupos = gruposDoTorneio(t.id);
+    const souElegivel = me ? elegivel(me, t.id) : false;
+
+    html += `<div class="card"><h2><span class="torneio-tag">${t.trofeu}</span>Torneio ${t.nome}</h2><p class="msg">${t.desc}</p>`;
+
+    if(isAdmin){
+      html += `<h3>Painel do administrador — ${t.nome}</h3>
+        <div class="linha-form">
+          <input type="text" id="home_${t.id}" placeholder="Time da casa">
+          <input type="text" id="away_${t.id}" placeholder="Time visitante">
+        </div>
+        <div class="linha-form">
+          <button onclick="criarJogo('${t.id}')">+ Criar jogo</button>
+        </div>
+        ${abertos.map(g=>`
+          <div class="jogo"><div class="linha"><span class="times">${g.home} x ${g.away}</span><span class="pill ${palpitesFechados(g)?'status-fechado':'status-aberto'}">${palpitesFechados(g)?'Palpites fechados':'Palpites abertos'}</span></div>
+          <div class="linha-form" style="margin-top:6px;">
+            <input type="number" min="0" id="rh_${g.id}" placeholder="0"><span>x</span><input type="number" min="0" id="ra_${g.id}" placeholder="0">
+            <button onclick="lancarResultado('${g.id}')">Lançar</button>
+          </div>
+          <div class="linha-form">
+            <button class="sec" onclick="alternarFechado('${g.id}',${!g.fechado})">${g.fechado?'🔓 Reabrir palpites':'🔒 Fechar palpites'}</button>
+            <button class="sec" onclick="excluirJogo('${g.id}')">Excluir</button>
+          </div></div>`).join('')}
+        <p class="msg" style="margin-top:10px;">Premiar campeão (dá ${t.trofeu} no perfil do líder atual):</p>
+        <div class="linha-form">
+          ${Object.keys(grupos).map(n=>`<button class="sec" onclick="premiarGrupo('${t.id}',${n})">${t.trofeu} Grupo ${n}</button>`).join('')}
+          ${Object.keys(grupos).length>1?`<button onclick="premiarTodos('${t.id}')">${t.trofeu} Premiar todos os grupos</button>`:''}
+        </div>`;
+    }
+
+    html += `<h3>Jogos em aberto</h3>`;
+    if(!abertos.length) html += `<p class="msg">Nenhum jogo aberto agora.</p>`;
+    abertos.forEach(g=>{
+      const meuPalpite = me ? guesses.find(x=>x.gameId===g.id && x.uid===me) : null;
+      const fechado = palpitesFechados(g);
+      html += `<div class="jogo"><div class="linha"><span class="times">${g.home} x ${g.away}</span><span class="pill ${fechado?'status-fechado':'status-aberto'}">${fechado?'Palpites fechados':'Aberto'}</span></div>`;
+      if(!meuPlayer){ html += `<p class="bloqueado">Crie seu perfil acima para palpitar.</p>`; }
+      else if(!souElegivel){ html += `<p class="bloqueado">🔒 Você não está classificado para o ${t.nome}.</p>`; }
+      else if(fechado){
+        html += meuPalpite ? `<p class="msg">Seu palpite: ${meuPalpite.home} x ${meuPalpite.away} (aguardando resultado)</p>` : `<p class="bloqueado">🔒 Palpites encerrados para este jogo.</p>`;
+      }
+      else{
+        html += `<div class="linha-form" style="margin-top:8px;">
+          <input type="number" min="0" id="ph_${g.id}" value="${meuPalpite?meuPalpite.home:''}" placeholder="0"><span>x</span>
+          <input type="number" min="0" id="pa_${g.id}" value="${meuPalpite?meuPalpite.away:''}" placeholder="0">
+          <button onclick="salvarPalpite('${g.id}')">${meuPalpite?'Atualizar':'Palpitar'}</button>
+        </div>`;
+      }
+      html += `</div>`;
+    });
+
+    if(encerrados.length){
+      html += `<h3>Resultados</h3>`;
+      encerrados.forEach(g=>{
+        const meuPalpite = me ? guesses.find(x=>x.gameId===g.id && x.uid===me) : null;
+        const pts = meuPalpite ? pontosJogo(g, meuPalpite) : null;
+        html += `<div class="jogo"><div class="linha"><span class="times">${g.home} ${g.homeScore} x ${g.awayScore} ${g.away}</span><span class="pill status-fechado">Encerrado</span></div>
+        ${meuPalpite? `<div class="msg">Seu palpite: ${meuPalpite.home} x ${meuPalpite.away} — ${pts} ponto(s)</div>`:''}</div>`;
+      });
+    }
+
+    html += `<h3>Classificação</h3>`;
+    const chaves = Object.keys(grupos).sort((a,b)=>a-b);
+    if(!chaves.length){ html += `<p class="msg">Ainda não há classificados para este torneio.</p>`; }
+    chaves.forEach(n=>{
+      const lista = grupos[n];
+      html += `<p class="msg"><b>Grupo ${n}</b> (${lista.length}/${TAMANHO_GRUPO})</p>
+        <table><tr><th>Pos.</th><th>Jogador</th><th>Pts</th><th>Troféus</th></tr>
+        ${lista.map((p,i)=>`<tr><td class="${i===0?'pos1':''}">${ord(i+1)}</td><td>${p.name}${p.uid===me?' (você)':''}</td><td>${p.pts}</td><td>${(p.trophies||[]).map(trofeuIcon).join('')||'—'}</td></tr>`).join('')}
+        </table>`;
+    });
+    html += `</div>`;
+  });
+
+  const minhaInstancia = instanciaAtualParaMim(salaTipoAtual);
+  const msgsSala = chatMsgs.filter(m=>m.cap===salaTipoAtual && m.instancia===minhaInstancia);
+  const instancias = instanciasExistentes(salaTipoAtual);
+  html += `<div class="card"><h2>💬 Chat da turma</h2>
+    <div class="salas">${CAPACIDADES.map(c=>`<button class="${c===salaTipoAtual?'ativa':''}" onclick="escolherTipoSala(${c})">Sala ${c}</button>`).join('')}</div>
+    <p class="msg">${instancias.length>1?`Existem ${instancias.length} turmas na Sala ${salaTipoAtual}. `:''}Você está na <b>Turma ${minhaInstancia}</b> (${(salaMembros.filter(m=>m.cap===salaTipoAtual&&m.instancia===minhaInstancia).length)}/${salaTipoAtual}).</p>
+    <div id="chatBox">${msgsSala.length? msgsSala.map(m=>`<div class="msgChat ${m.uid===me?'mine':''}"><b>${escapeHtml(m.name||'Jogador')}:</b> ${escapeHtml(m.text)}<span class="hora">${fmtData(m.ts)}</span></div>`).join('') : '<p class="msg">Nenhuma mensagem ainda nesta turma. Diga oi! 👋</p>'}</div>
+    ${meuPlayer? `
+    <div class="emojis">${EMOJIS.map(e=>`<button onclick="inserirEmoji('${e}')">${e}</button>`).join('')}</div>
+    <div class="linha-form"><input type="text" id="chatInput" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter'){enviarChat();}"><button onclick="enviarChat()">Enviar</button></div>` : `<p class="bloqueado">Crie seu perfil acima para conversar no chat.</p>`}
+  </div>`;
+
+  app.innerHTML = html;
+  const cb = document.getElementById('chatBox'); if(cb) cb.scrollTop = cb.scrollHeight;
+}
+
+async function criarPerfil(){
+  const nome = document.getElementById('nickInput').value.trim() || 'Jogador';
+  const grupo = Math.floor(players.length/TAMANHO_GRUPO)+1;
+  try{ await db.doc('players/'+me).set({uid:me,name:nome,joinedAt:Date.now(),group:grupo,trophies:[]}); }
+  catch(e){ alert('Não foi possível criar o perfil.'); }
+}
+async function criarJogo(torneioId){
+  const home=document.getElementById('home_'+torneioId).value.trim();
+  const away=document.getElementById('away_'+torneioId).value.trim();
+  if(!home||!away) return alert('Preencha os dois times.');
+  const id='g_'+Date.now();
+  try{ await db.doc('games/'+id).set({home,away,torneio:torneioId,ts:Date.now(),homeScore:null,awayScore:null}); }
+  catch(e){ alert('Erro ao criar jogo.'); }
+}
+async function excluirJogo(id){ if(!confirm('Excluir este jogo?')) return; try{ await db.doc('games/'+id).delete(); }catch(e){ alert('Erro ao excluir.'); } }
+async function alternarFechado(id, fechar){
+  try{ await db.doc('games/'+id).update({fechado:fechar}); }catch(e){ alert('Erro ao atualizar.'); }
+}
+async function lancarResultado(id){
+  const h=document.getElementById('rh_'+id).value, a=document.getElementById('ra_'+id).value;
+  if(h===''||a==='') return alert('Informe o placar final.');
+  try{ await db.doc('games/'+id).update({homeScore:parseInt(h),awayScore:parseInt(a)}); }catch(e){ alert('Erro ao lançar resultado.'); }
+}
+async function salvarPalpite(gameId){
+  const meuPlayer = players.find(p=>p.uid===me);
+  if(!meuPlayer) return alert('Crie seu perfil primeiro.');
+  const jogo = games.find(g=>g.id===gameId);
+  if(jogo && palpitesFechados(jogo)) return alert('Os palpites para este jogo já estão fechados.');
+  const h=document.getElementById('ph_'+gameId).value, a=document.getElementById('pa_'+gameId).value;
+  if(h===''||a==='') return alert('Preencha os dois placares.');
+  try{ await db.doc('guesses/'+gameId+'__'+me).set({gameId,uid:me,home:parseInt(h),away:parseInt(a),ts:Date.now()}); }
+  catch(e){ alert('Não foi possível salvar seu palpite.'); }
+}
+async function premiarGrupo(torneioId, grupo){
+  const grupos = gruposDoTorneio(torneioId);
+  const lista = grupos[grupo];
+  if(!lista||!lista.length) return alert('Grupo vazio.');
+  const maxPts = lista[0].pts;
+  const vencedores = lista.filter(p=>p.pts===maxPts);
+  const t = TORNEIOS.find(t=>t.id===torneioId);
+  const nomes = vencedores.map(v=>v.name).join(', ');
+  if(!confirm(`Dar ${t.trofeu} para ${nomes} (líder${vencedores.length>1?'es empatados':''} do Grupo ${grupo} do ${t.nome} com ${maxPts} pts)?`)) return;
+  try{
+    for(const v of vencedores){
+      const trofeus=[...(v.trophies||[]),{ts:Date.now(),torneio:torneioId,grupo}];
+      await db.doc('players/'+v.uid).update({trophies:trofeus});
+    }
+  }catch(e){ alert('Erro ao premiar.'); }
+}
+async function premiarTodos(torneioId){
+  const grupos = gruposDoTorneio(torneioId);
+  const t = TORNEIOS.find(t=>t.id===torneioId);
+  const campeoes = Object.keys(grupos).map(n=>{
+    const lista = grupos[n]; if(!lista.length) return null;
+    const maxPts = lista[0].pts;
+    return {grupo:n, vencedores: lista.filter(p=>p.pts===maxPts)};
+  }).filter(Boolean);
+  if(!campeoes.length) return alert('Não há classificados ainda.');
+  const resumo = campeoes.map(c=>`Grupo ${c.grupo}: ${c.vencedores.map(v=>v.name).join(', ')}`).join('\n');
+  if(!confirm(`Dar ${t.trofeu} para os líderes (ou empatados) de todos os grupos do ${t.nome}?\n\n${resumo}`)) return;
+  try{
+    for(const c of campeoes){
+      for(const v of c.vencedores){
+        const trofeus=[...(v.trophies||[]),{ts:Date.now(),torneio:torneioId,grupo:c.grupo}];
+        await db.doc('players/'+v.uid).update({trophies:trofeus});
+      }
+    }
+  }catch(e){ alert('Erro ao premiar alguns campeões.'); }
+}
+function escolherTipoSala(cap){ salaTipoAtual=cap; render(); }
+function inserirEmoji(e){
+  const input=document.getElementById('chatInput'); if(!input) return;
+  input.value += e; input.focus();
+}
+async function enviarChat(){
+  if(!players.find(p=>p.uid===me)) return alert('Crie seu perfil primeiro.');
+  const input=document.getElementById('chatInput'); const texto=input.value.trim();
+  if(!texto) return;
+  const cap = salaTipoAtual;
+  const jaEhMembro = salaMembros.find(m=>m.cap===cap && m.uid===me);
+  const instancia = jaEhMembro ? jaEhMembro.instancia : calcularInstancia(cap);
+  input.value='';
+  const nome = meuNome();
+  try{
+    if(!jaEhMembro){ await db.doc('salaMembros/'+cap+'_'+instancia+'__'+me).set({cap,instancia,uid:me,name:nome,ts:Date.now()}); }
+    const id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    await db.doc('chat/'+id).set({cap,instancia,uid:me,name:nome,text:texto,ts:Date.now()});
+  }catch(e){ alert('Não foi possível enviar a mensagem.'); }
+}
+
+function renderLogin(){
+  app.innerHTML = `<div class="loginWrap"><div class="card">
+    <h2 style="text-align:center;">⚽ FutSassemburg</h2>
+    <div class="tabsLogin">
+      <button class="${authModo==='login'?'ativa':''}" onclick="trocarModoAuth('login')">Entrar</button>
+      <button class="${authModo==='signup'?'ativa':''}" onclick="trocarModoAuth('signup')">Criar conta</button>
+    </div>
+    <div class="linha-form"><input type="text" id="authEmail" placeholder="E-mail"></div>
+    <div class="linha-form"><input type="text" id="authSenha" placeholder="Senha (mín. 6 caracteres)"></div>
+    <div class="linha-form"><button onclick="${authModo==='login'?'fazerLogin()':'criarConta()'}" style="width:100%;">${authModo==='login'?'Entrar':'Criar conta'}</button></div>
+    ${authModo==='login'?`<p class="msg" style="text-align:center;"><a href="#" onclick="recuperarSenha();return false;" style="color:var(--verde);">Esqueci minha senha</a></p>`:''}
+    <p class="msg" id="authMsg" style="text-align:center;"></p>
+  </div></div>`;
+}
+async function recuperarSenha(){
+  const email = document.getElementById('authEmail').value.trim();
+  if(!email) return alert('Digite seu e-mail no campo acima primeiro.');
+  try{
+    await firebase.auth().sendPasswordResetEmail(email);
+    document.getElementById('authMsg').textContent = 'E-mail de recuperação enviado! Verifique sua caixa de entrada.';
+  }catch(e){ document.getElementById('authMsg').textContent = msgErroAuth(e.code); }
+}
+function trocarModoAuth(m){ authModo=m; renderLogin(); }
+function msgErroAuth(code){
+  const mapa = {
+    'auth/email-already-in-use':'Esse e-mail já tem uma conta. Tente entrar.',
+    'auth/invalid-email':'E-mail inválido.',
+    'auth/weak-password':'A senha precisa ter pelo menos 6 caracteres.',
+    'auth/wrong-password':'Senha incorreta.',
+    'auth/user-not-found':'Não existe conta com esse e-mail. Crie uma conta.',
+    'auth/invalid-credential':'E-mail ou senha incorretos.'
+  };
+  return mapa[code] || 'Não foi possível continuar. Tente novamente.';
+}
+async function fazerLogin(){
+  const email=document.getElementById('authEmail').value.trim();
+  const senha=document.getElementById('authSenha').value;
+  try{ await firebase.auth().signInWithEmailAndPassword(email, senha); }
+  catch(e){ document.getElementById('authMsg').textContent = msgErroAuth(e.code); }
+}
+async function criarConta(){
+  const email=document.getElementById('authEmail').value.trim();
+  const senha=document.getElementById('authSenha').value;
+  try{ await firebase.auth().createUserWithEmailAndPassword(email, senha); }
+  catch(e){ document.getElementById('authMsg').textContent = msgErroAuth(e.code); }
+}
+async function sairDaConta(){
+  if(!confirm('Sair da sua conta?')) return;
+  try{ await firebase.auth().signOut(); }catch(e){}
+}
+
+function iniciarAssinaturas(){
+  db.collection('games').onSnapshot(list=>{ games=list.map(d=>({id:d.id,...d.data})); render(); });
+  db.collection('guesses').onSnapshot(list=>{ guesses=list.map(d=>d.data); render(); });
+  db.collection('players').onSnapshot(list=>{ players=list.map(d=>d.data); render(); });
+  db.collection('chat').onSnapshot(list=>{ chatMsgs=list.map(d=>d.data).sort((a,b)=>a.ts-b.ts).slice(-300); render(); });
+  db.collection('salaMembros').onSnapshot(list=>{ salaMembros=list.map(d=>d.data); render(); });
+  db.doc('fixados/aviso').onSnapshot(res=>{ avisoFixado = res ? res.data : null; render(); });
+}
+async function salvarAviso(){
+  const texto = document.getElementById('avisoInput').value.trim();
+  if(!texto) return alert('Escreva uma mensagem.');
+  try{ await db.doc('fixados/aviso').set({text:texto, ts:Date.now()}); }catch(e){ alert('Erro ao fixar mensagem.'); }
+}
+async function apagarAviso(){
+  if(!confirm('Remover a mensagem fixada?')) return;
+  try{ await db.doc('fixados/aviso').delete(); }catch(e){ alert('Erro ao remover.'); }
+}
+
+function init(){
+  if(firebaseConfig.apiKey==='SUA_API_KEY'){
+    app.innerHTML = '<div class="card"><p class="erro">Configuração do Firebase ainda não foi preenchida no código (firebaseConfig). Veja as instruções que te enviei.</p></div>';
+    return;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db = makeDbShim(firebase.firestore());
+
+  firebase.auth().onAuthStateChanged(user=>{
+    if(!user){ me=null; assinado=false; renderLogin(); return; }
+    me = user.uid; meuEmail = user.email;
+    isAdmin = (meuEmail||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    if(!assinado){ iniciarAssinaturas(); assinado=true; }
+    render();
+  });
+}
+init();
+</script>
+</body>
+</html>
