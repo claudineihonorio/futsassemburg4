@@ -118,6 +118,14 @@ const firebaseConfig = {
 // ==================================================================
 
 let db=null, me=null, isAdmin=false, meuEmail=null, authModo='login', assinado=false;
+let presenca=[], batimentoTimer=null;
+function contarOnline(){ return presenca.filter(p=>Date.now()-p.ts<75000).length; }
+async function batimento(){ if(!me) return; try{ await db.doc('presenca/'+me).set({uid:me, ts:Date.now()}); }catch(e){} }
+function iniciarPresenca(){
+  batimento();
+  if(batimentoTimer) clearInterval(batimentoTimer);
+  batimentoTimer = setInterval(()=>{ batimento(); const el=document.getElementById('onlineCount'); if(el) el.textContent=contarOnline(); }, 30000);
+}
 let games=[], guesses=[], players=[], chatMsgs=[], salaMembros=[], salaTipoAtual=20, avisoFixado=null;
 
 function makeDbShim(firestore){
@@ -217,16 +225,10 @@ function render(){
     </div>`;
   }
 
-  html += `<div class="card" style="border-color:var(--ouro);text-align:center;">
-    <h2>💚 Ajude a manter o FutSassemburg no ar</h2>
-    <p class="msg">Doe R$ 6,99 por mês para manter a plataforma no ar!! O trabalho de colocar os jogos e entregar troféus é feito manualmente: peço a compreensão dos usúarios, Obrigado!!</p>
-    <a href="https://mpago.la/28SY3cG" target="_blank" rel="noopener"><button style="width:100%;">💳 Doar R$ 6,99</button></a>
-  </div>`;
-
   html += `<div class="card"><h2>ℹ️ Como funciona o jogo</h2>
     <p class="msg">✅ Acertou o placar exato: <b>+3 pontos</b><br>✅ Acertou só quem venceu (ou o empate), mas não o placar: <b>+1 ponto</b><br>❌ Errou tudo: 0 pontos.</p></div>`;
 
-  html += `<div class="card"><span class="badge">${players.length} jogador(es) cadastrados</span>
+  html += `<div class="card"><span class="badge">${players.length} jogador(es) cadastrados</span> <span class="badge" style="background:#d9f2df;color:#0a5c2b;">🟢 <span id="onlineCount">${contarOnline()}</span> online agora</span>
     <p class="msg">Você é <b>${meuNome()}</b> (${meuEmail||''})${isAdmin?' — <b>Administrador</b>':''}</p>
     <div class="linha-form"><button class="sec" onclick="sairDaConta()">Sair da conta</button></div></div>`;
 
@@ -488,6 +490,7 @@ async function criarConta(){
 }
 async function sairDaConta(){
   if(!confirm('Sair da sua conta?')) return;
+  try{ await db.doc('presenca/'+me).delete(); }catch(e){}
   try{ await firebase.auth().signOut(); }catch(e){}
 }
 
@@ -497,6 +500,7 @@ function iniciarAssinaturas(){
   db.collection('players').onSnapshot(list=>{ players=list.map(d=>d.data); render(); });
   db.collection('chat').onSnapshot(list=>{ chatMsgs=list.map(d=>d.data).sort((a,b)=>a.ts-b.ts).slice(-300); render(); });
   db.collection('salaMembros').onSnapshot(list=>{ salaMembros=list.map(d=>d.data); render(); });
+  db.collection('presenca').onSnapshot(list=>{ presenca=list.map(d=>d.data); const el=document.getElementById('onlineCount'); if(el) el.textContent=contarOnline(); });
   db.doc('fixados/aviso').onSnapshot(res=>{ avisoFixado = res ? res.data : null; render(); });
 }
 async function salvarAviso(){
@@ -518,10 +522,11 @@ function init(){
   db = makeDbShim(firebase.firestore());
 
   firebase.auth().onAuthStateChanged(user=>{
-    if(!user){ me=null; assinado=false; renderLogin(); return; }
+    if(!user){ me=null; assinado=false; if(batimentoTimer){clearInterval(batimentoTimer);batimentoTimer=null;} renderLogin(); return; }
     me = user.uid; meuEmail = user.email;
     isAdmin = (meuEmail||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
     if(!assinado){ iniciarAssinaturas(); assinado=true; }
+    iniciarPresenca();
     render();
   });
 }
