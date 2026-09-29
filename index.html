@@ -73,18 +73,32 @@ footer{text-align:center;color:var(--sub);font-size:.75rem;padding:20px;}
 <body>
 <header>
   <h1>⚽ FutSassemburg</h1>
-  <p>Bolão de palpites entre a turma · 3 torneios</p>
+  <p>Bolão de palpites entre a turma · 6 torneios</p>
 </header>
 <div class="wrap" id="app"><div class="card"><p class="msg">Carregando...</p></div></div>
-<footer>FutSassemburg · Grok, Mundial e Glória · grupos de 20</footer>
+<footer>FutSassemburg · Grok, Mundial e Glória (reais) · Strike, Mundial e Bisteca (fictícios) · grupos de 20</footer>
 
 <script>
 const TAMANHO_GRUPO = 20;
 const TORNEIOS = [
-  {id:'grok', nome:'Grok', trofeu:'🏆', reqTop:null, desc:'Torneio principal — todo mundo participa.'},
-  {id:'mundial', nome:'Mundial', trofeu:'🌍', reqTop:8, desc:'Só joga quem termina entre 1º e 8º do grupo no Grok.'},
-  {id:'gloria', nome:'Glória', trofeu:'👑', reqTop:16, desc:'Só joga quem termina entre 1º e 16º do grupo no Grok.'}
+  {id:'grok', base:'grok', nome:'Grok', trofeu:'🏆', reqTop:null, desc:'Torneio principal — todo mundo participa.', ficticio:false},
+  {id:'mundial', base:'grok', nome:'Mundial', trofeu:'🌍', reqTop:8, desc:'Só joga quem termina entre 1º e 8º do grupo no Grok.', ficticio:false},
+  {id:'gloria', base:'grok', nome:'Glória', trofeu:'👑', reqTop:16, desc:'Só joga quem termina entre 1º e 16º do grupo no Grok.', ficticio:false},
+  {id:'strike', base:'strike', nome:'Strike', trofeu:'⭐', reqTop:null, desc:'Torneio fictício principal — jogos e resultados são gerados automaticamente.', ficticio:true},
+  {id:'fictmundial', base:'strike', nome:'Mundial (fictício)', trofeu:'🌐', reqTop:8, desc:'Fictício. Só joga quem termina entre 1º e 8º do grupo no Strike.', ficticio:true},
+  {id:'bisteca', base:'strike', nome:'Bisteca', trofeu:'🥩', reqTop:16, desc:'Fictício. Só joga quem termina entre 1º e 16º do grupo no Strike.', ficticio:true}
 ];
+const FICT_TIMES = ['Rio Branco FC','Estrela FC','Bota Fé','Vacilão EC','Guerreiros FC','Anaconda FC','Leão EH','Hidan FC','Boo EC','Morte FC','Uva EH','Escorpião EH','Amigo da Onça FC','Peneira EC','Brisola','Sassemburg','Capa FC','Terno EC','Viajou EH','Brasil'];
+function gerarRodadasFict(){
+  const n=FICT_TIMES.length; let arr=[...Array(n).keys()]; const rodadas=[];
+  for(let r=0;r<n-1;r++){
+    const pares=[]; for(let i=0;i<n/2;i++){ pares.push([arr[i],arr[n-1-i]]); }
+    rodadas.push(pares);
+    const last=arr.pop(); arr.splice(1,0,last);
+  }
+  return rodadas;
+}
+const FICT_RODADAS = gerarRodadasFict();
 const CAPACIDADES = [20,50,100,150];
 function calcularInstancia(cap){
   const membrosTipo = salaMembros.filter(m=>m.cap===cap);
@@ -169,49 +183,53 @@ function torneioPontos(uid, torneioId){
   });
   return pts;
 }
-function grokStandings(){
+function torneioCfg(id){ return TORNEIOS.find(x=>x.id===id); }
+function standingsBase(baseId){
   const porGrupo = {};
   players.forEach(p=>{
     const grp = p.group||1;
-    (porGrupo[grp]=porGrupo[grp]||[]).push({...p, pts:torneioPontos(p.uid,'grok')});
+    (porGrupo[grp]=porGrupo[grp]||[]).push({...p, pts:torneioPontos(p.uid,baseId)});
   });
   Object.values(porGrupo).forEach(a=>a.sort((x,y)=>y.pts-x.pts));
   return porGrupo;
 }
-function grokRank(uid){
-  const gs = grokStandings();
+function rankEmBase(uid, baseId){
+  const gs = standingsBase(baseId);
   for(const g of Object.values(gs)){ const i=g.findIndex(p=>p.uid===uid); if(i>-1) return i+1; }
   return null;
 }
-function qualificados(reqTop){
-  const gs = grokStandings(); const lista=[];
+function qualificados(baseId, reqTop){
+  const gs = standingsBase(baseId); const lista=[];
   Object.keys(gs).sort((a,b)=>a-b).forEach(g=>{ gs[g].forEach((p,i)=>{ if(i<reqTop) lista.push(p); }); });
   return lista;
 }
 function gruposDoTorneio(torneioId){
+  const t = torneioCfg(torneioId);
   const grupos = {};
-  if(torneioId==='grok'){
+  if(t.base===t.id){
     players.forEach(p=>{
       const grp = p.group||1;
-      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,'grok')});
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,t.id)});
     });
   } else {
-    const reqTop = torneioId==='mundial'?8:16;
-    qualificados(reqTop).forEach((p,idx)=>{
+    qualificados(t.base, t.reqTop).forEach((p,idx)=>{
       const grp = Math.floor(idx/TAMANHO_GRUPO)+1;
-      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,torneioId)});
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,t.id)});
     });
   }
   Object.values(grupos).forEach(a=>a.sort((x,y)=>y.pts-x.pts));
   return grupos;
 }
 function elegivel(uid, torneioId){
-  if(torneioId==='grok') return true;
-  const t = TORNEIOS.find(t=>t.id===torneioId);
-  const r = grokRank(uid);
+  const t = torneioCfg(torneioId);
+  if(t.base===t.id) return true;
+  const r = rankEmBase(uid, t.base);
   return r!=null && r<=t.reqTop;
 }
-function trofeuIcon(t){ return t.torneio==='grok'?'🏆':t.torneio==='mundial'?'🌍':'👑'; }
+function trofeuIcon(tr){
+  const mapa={grok:'🏆',mundial:'🌍',gloria:'👑',strike:'⭐',fictmundial:'🌐',bisteca:'🥩'};
+  return mapa[tr.torneio]||'🏆';
+}
 function palpitesFechados(g){ return !!g.fechado; }
 
 function render(){
@@ -265,8 +283,16 @@ function render(){
     const souElegivel = me ? elegivel(me, t.id) : false;
 
     html += `<div class="card"><h2><span class="torneio-tag">${t.trofeu}</span>Torneio ${t.nome}</h2><p class="msg">${t.desc}</p>`;
+    if(t.ficticio){
+      html += `<p class="msg" style="font-size:.72rem;">⚠️ Torneio fictício, apenas para diversão. As rodadas abrem para palpite às 1h da manhã, fecham às 18h, e o resultado sai às 19h, automaticamente.</p>`;
+    }
 
-    if(isAdmin){
+    if(isAdmin && t.ficticio){
+      html += `<h3>Painel do administrador — ${t.nome} (automático)</h3>
+        <p class="msg">Ciclo ${estadoFict?estadoFict.ciclo:'-'} · Rodada ${estadoFict?estadoFict.rodada:'-'}/19 · Fase: ${estadoFict?estadoFict.fase:'-'}</p>
+        <p class="msg">Os jogos deste torneio são gerados, fechados e revelados automaticamente. Nenhuma ação manual necessária.</p>`;
+    }
+    if(isAdmin && !t.ficticio){
       html += `<h3>Painel do administrador — ${t.nome}</h3>
         <div class="linha-form">
           <input type="text" id="home_${t.id}" placeholder="Time da casa">
@@ -421,6 +447,85 @@ async function premiarTodos(torneioId){
     }
   }catch(e){ alert('Erro ao premiar alguns campeões.'); }
 }
+
+// ===== Motor automático dos torneios fictícios (Strike / Mundial fictício / Bisteca) =====
+let estadoFict=null, placaresAnteriores={}, ficticioTimer=null;
+function dataChaveHoje(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+async function premiarAutomaticoFicticio(){
+  for(const t of TORNEIOS.filter(x=>x.ficticio)){
+    const grupos = gruposDoTorneio(t.id);
+    for(const n of Object.keys(grupos)){
+      const lista = grupos[n]; if(!lista.length) continue;
+      const maxPts = lista[0].pts; if(maxPts<=0) continue;
+      const vencedores = lista.filter(p=>p.pts===maxPts);
+      for(const v of vencedores){
+        try{
+          const trofeus=[...(v.trophies||[]),{ts:Date.now(),torneio:t.id,grupo:n}];
+          await db.doc('players/'+v.uid).update({trophies:trofeus});
+        }catch(e){}
+      }
+    }
+  }
+}
+async function tickFicticio(){
+  if(!db || !me) return;
+  try{
+    if(!estadoFict){
+      await db.doc('ficticio/estado').set({ciclo:1, rodada:0, diaChave:'', fase:'nenhuma'});
+      return;
+    }
+    const hoje = dataChaveHoje();
+    const hora = new Date().getHours();
+
+    if(hora>=1 && estadoFict.diaChave!==hoje){
+      const rodadaAnterior = estadoFict.rodada||0;
+      let novaRodada, novoCiclo = estadoFict.ciclo||1;
+      if(rodadaAnterior>=19){ novaRodada=1; novoCiclo=novoCiclo+1; } else { novaRodada=rodadaAnterior+1; }
+      const pares = FICT_RODADAS[novaRodada-1];
+      for(let idx=0; idx<pares.length; idx++){
+        const [hi,ai] = pares[idx];
+        const chave = 'r'+novaRodada+'_m'+idx;
+        await db.doc('games/fict_'+novoCiclo+'_'+novaRodada+'_'+idx).set({
+          home:FICT_TIMES[hi], away:FICT_TIMES[ai], torneio:'strike',
+          rodadaFict:novaRodada, cicloFict:novoCiclo, chaveFict:chave,
+          ts:Date.now(), homeScore:null, awayScore:null, fechado:false
+        });
+      }
+      await db.doc('ficticio/estado').set({ciclo:novoCiclo, rodada:novaRodada, diaChave:hoje, fase:'aberta'});
+      return;
+    }
+
+    if(hora>=18 && estadoFict.fase==='aberta' && estadoFict.diaChave===hoje){
+      const jogosHoje = games.filter(g=>g.cicloFict===estadoFict.ciclo && g.rodadaFict===estadoFict.rodada);
+      for(const g of jogosHoje){ await db.doc('games/'+g.id).update({fechado:true}); }
+      await db.doc('ficticio/estado').update({fase:'fechada'});
+      return;
+    }
+
+    if(hora>=19 && estadoFict.fase==='fechada' && estadoFict.diaChave===hoje){
+      const rodadaFinalizada = estadoFict.rodada;
+      await db.doc('ficticio/estado').update({fase:'resultado'});
+      const jogosHoje = games.filter(g=>g.cicloFict===estadoFict.ciclo && g.rodadaFict===estadoFict.rodada);
+      const mapaAtual = {...placaresAnteriores};
+      for(const g of jogosHoje){
+        let h,a,tentativas=0;
+        do{ h=Math.floor(Math.random()*5); a=Math.floor(Math.random()*5); tentativas++; }
+        while(mapaAtual[g.chaveFict]===(h+'-'+a) && tentativas<30);
+        await db.doc('games/'+g.id).update({homeScore:h, awayScore:a});
+        mapaAtual[g.chaveFict] = h+'-'+a;
+      }
+      await db.doc('ficticio/ultimosPlacares').set({mapa:mapaAtual});
+      if(rodadaFinalizada===19){ await premiarAutomaticoFicticio(); }
+      return;
+    }
+  }catch(e){}
+}
+function iniciarMotorFicticio(){
+  tickFicticio();
+  if(ficticioTimer) clearInterval(ficticioTimer);
+  ficticioTimer = setInterval(tickFicticio, 60000);
+}
+
 function escolherTipoSala(cap){ salaTipoAtual=cap; render(); }
 function inserirEmoji(e){
   const input=document.getElementById('chatInput'); if(!input) return;
@@ -491,6 +596,7 @@ async function criarConta(){
 async function sairDaConta(){
   if(!confirm('Sair da sua conta?')) return;
   try{ await db.doc('presenca/'+me).delete(); }catch(e){}
+  if(ficticioTimer){ clearInterval(ficticioTimer); ficticioTimer=null; }
   try{ await firebase.auth().signOut(); }catch(e){}
 }
 
@@ -502,6 +608,8 @@ function iniciarAssinaturas(){
   db.collection('salaMembros').onSnapshot(list=>{ salaMembros=list.map(d=>d.data); render(); });
   db.collection('presenca').onSnapshot(list=>{ presenca=list.map(d=>d.data); const el=document.getElementById('onlineCount'); if(el) el.textContent=contarOnline(); });
   db.doc('fixados/aviso').onSnapshot(res=>{ avisoFixado = res ? res.data : null; render(); });
+  db.doc('ficticio/estado').onSnapshot(res=>{ estadoFict = res ? res.data : null; render(); tickFicticio(); });
+  db.doc('ficticio/ultimosPlacares').onSnapshot(res=>{ placaresAnteriores = res && res.data.mapa ? res.data.mapa : {}; });
 }
 async function salvarAviso(){
   const texto = document.getElementById('avisoInput').value.trim();
@@ -527,6 +635,7 @@ function init(){
     isAdmin = (meuEmail||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
     if(!assinado){ iniciarAssinaturas(); assinado=true; }
     iniciarPresenca();
+    iniciarMotorFicticio();
     render();
   });
 }
