@@ -184,6 +184,7 @@ function torneioPontos(uid, torneioId){
   return pts;
 }
 function torneioCfg(id){ return TORNEIOS.find(x=>x.id===id); }
+function fonteJogos(t){ return (t.ficticio && t.base!==t.id) ? t.base : t.id; }
 function standingsBase(baseId){
   const porGrupo = {};
   players.forEach(p=>{
@@ -206,15 +207,16 @@ function qualificados(baseId, reqTop){
 function gruposDoTorneio(torneioId){
   const t = torneioCfg(torneioId);
   const grupos = {};
+  const fonte = fonteJogos(t);
   if(t.base===t.id){
     players.forEach(p=>{
       const grp = p.group||1;
-      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,t.id)});
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,fonte)});
     });
   } else {
     qualificados(t.base, t.reqTop).forEach((p,idx)=>{
       const grp = Math.floor(idx/TAMANHO_GRUPO)+1;
-      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,t.id)});
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,fonte)});
     });
   }
   Object.values(grupos).forEach(a=>a.sort((x,y)=>y.pts-x.pts));
@@ -225,6 +227,12 @@ function elegivel(uid, torneioId){
   if(t.base===t.id) return true;
   const r = rankEmBase(uid, t.base);
   return r!=null && r<=t.reqTop;
+}
+function trofeusResumo(trophies){
+  if(!trophies||!trophies.length) return '';
+  const contagem={};
+  trophies.forEach(t=>{ const icon=trofeuIcon(t); contagem[icon]=(contagem[icon]||0)+1; });
+  return Object.entries(contagem).map(([icon,qtd])=>icon+(qtd>1?' x'+qtd:'')).join(' ');
 }
 function trofeuIcon(tr){
   const mapa={grok:'🏆',mundial:'🌍',gloria:'👑',strike:'⭐',fictmundial:'🌐',bisteca:'🥩'};
@@ -277,8 +285,9 @@ function render(){
   }
 
   TORNEIOS.forEach(t=>{
-    const abertos = games.filter(g=>(g.torneio||'grok')===t.id && g.homeScore==null).sort((a,b)=>(a.ts||0)-(b.ts||0));
-    const encerrados = games.filter(g=>(g.torneio||'grok')===t.id && g.homeScore!=null).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const fonteT = fonteJogos(t);
+    const abertos = games.filter(g=>(g.torneio||'grok')===fonteT && g.homeScore==null).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const encerrados = games.filter(g=>(g.torneio||'grok')===fonteT && g.homeScore!=null).sort((a,b)=>(b.ts||0)-(a.ts||0));
     const grupos = gruposDoTorneio(t.id);
     const souElegivel = me ? elegivel(me, t.id) : false;
 
@@ -451,16 +460,26 @@ async function premiarTodos(torneioId){
 // ===== Motor automático dos torneios fictícios (Strike / Mundial fictício / Bisteca) =====
 let estadoFict=null, placaresAnteriores={}, ficticioTimer=null;
 function dataChaveHoje(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-async function premiarAutomaticoFicticio(){
+function pontosDaRodada(uid, ciclo, rodada){
+  let pts=0;
+  games.filter(g=>g.cicloFict===ciclo && g.rodadaFict===rodada).forEach(g=>{
+    const gu = guesses.find(x=>x.gameId===g.id && x.uid===uid);
+    pts += pontosJogo(g, gu);
+  });
+  return pts;
+}
+async function premiarAutomaticoFicticio(ciclo, rodada){
   for(const t of TORNEIOS.filter(x=>x.ficticio)){
     const grupos = gruposDoTorneio(t.id);
     for(const n of Object.keys(grupos)){
-      const lista = grupos[n]; if(!lista.length) continue;
-      const maxPts = lista[0].pts; if(maxPts<=0) continue;
-      const vencedores = lista.filter(p=>p.pts===maxPts);
+      const lista = grupos[n].map(p=>({...p, ptsRodada: pontosDaRodada(p.uid, ciclo, rodada)}));
+      if(!lista.length) continue;
+      const maxPts = Math.max(...lista.map(p=>p.ptsRodada));
+      if(maxPts<=0) continue;
+      const vencedores = lista.filter(p=>p.ptsRodada===maxPts);
       for(const v of vencedores){
         try{
-          const trofeus=[...(v.trophies||[]),{ts:Date.now(),torneio:t.id,grupo:n}];
+          const trofeus=[...(v.trophies||[]),{ts:Date.now(),torneio:t.id,grupo:n,ciclo,rodada}];
           await db.doc('players/'+v.uid).update({trophies:trofeus});
         }catch(e){}
       }
@@ -515,7 +534,7 @@ async function tickFicticio(){
         mapaAtual[g.chaveFict] = h+'-'+a;
       }
       await db.doc('ficticio/ultimosPlacares').set({mapa:mapaAtual});
-      if(rodadaFinalizada===19){ await premiarAutomaticoFicticio(); }
+      await premiarAutomaticoFicticio(estadoFict.ciclo, rodadaFinalizada);
       return;
     }
   }catch(e){}
