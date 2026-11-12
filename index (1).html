@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script id="aclib" type="text/javascript" src="//acscdn.com/script/aclib.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FutSassemburg</title>
+<style>
+:root{
+  --verde:#0e7c3a; --verde2:#0a5c2b; --bg:#f4f6f4; --card:#ffffff;
+  --texto:#152016; --sub:#5b6b5d; --borda:#dfe6df; --ouro:#e8b923; --erro:#c0392b;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#10160f; --card:#171f16; --texto:#eef2ee; --sub:#9db09f; --borda:#283428; }
+}
+:root[data-theme="dark"]{ --bg:#10160f; --card:#171f16; --texto:#eef2ee; --sub:#9db09f; --borda:#283428; }
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--texto);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+header{background:linear-gradient(135deg,var(--verde),var(--verde2));color:#fff;padding:18px 16px calc(18px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:5;}
+header h1{margin:0;font-size:1.4rem;}
+header p{margin:4px 0 0;font-size:.85rem;opacity:.9;}
+.wrap{max-width:760px;margin:0 auto;padding:16px;}
+.card{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px;margin-bottom:16px;}
+.card h2{margin:0 0 10px;font-size:1.05rem;}
+.card h3{margin:14px 0 8px;font-size:.95rem;color:var(--sub);}
+.badge{display:inline-block;background:var(--ouro);color:#3a2c00;font-weight:600;font-size:.75rem;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
+.jogo{border:1px solid var(--borda);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+.jogo .linha{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.times{font-weight:600;}
+.data{font-size:.8rem;color:var(--sub);}
+input[type=number]{width:48px;padding:6px;border:1px solid var(--borda);border-radius:6px;text-align:center;background:var(--bg);color:var(--texto);}
+input[type=text],input[type=date],input[type=time],select{padding:8px;border:1px solid var(--borda);border-radius:8px;background:var(--bg);color:var(--texto);width:100%;}
+button{background:var(--verde);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;}
+button:hover{background:var(--verde2);}
+button.sec{background:var(--sub);}
+.linha-form{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
+.linha-form>*{flex:1;}
+table{width:100%;border-collapse:collapse;font-size:.88rem;}
+th,td{padding:6px 4px;text-align:left;border-bottom:1px solid var(--borda);}
+th{color:var(--sub);font-weight:600;}
+.pos1{color:var(--ouro);font-weight:700;}
+.msg{font-size:.85rem;color:var(--sub);}
+.erro{color:var(--erro);font-weight:600;}
+.pill{font-size:.75rem;padding:2px 8px;border-radius:20px;background:var(--borda);}
+.status-aberto{background:#d9f2df;color:#0a5c2b;}
+.status-fechado{background:#f2e0d9;color:#8a4a24;}
+.bloqueado{font-size:.82rem;color:var(--erro);margin-top:6px;}
+.torneio-tag{font-size:1.2rem;margin-right:6px;}
+#chatBox{max-height:260px;overflow-y:auto;border:1px solid var(--borda);border-radius:10px;padding:8px;margin-bottom:10px;background:var(--bg);}
+.msgChat{margin-bottom:8px;font-size:.88rem;}
+.msgChat b{color:var(--verde);}
+.msgChat.mine b{color:var(--ouro);}
+.msgChat .hora{font-size:.7rem;color:var(--sub);margin-left:6px;}
+.salas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.salas button{background:var(--borda);color:var(--texto);font-size:.8rem;padding:6px 10px;}
+.salas button.ativa{background:var(--verde);color:#fff;}
+.emojis{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.emojis button{background:transparent;border:1px solid var(--borda);font-size:1.1rem;padding:4px 8px;line-height:1;}
+.emojis button:hover{background:var(--borda);}
+.loginWrap{max-width:380px;margin:60px auto 0;}
+.tabsLogin{display:flex;gap:6px;margin-bottom:14px;}
+.tabsLogin button{flex:1;background:var(--borda);color:var(--texto);}
+.tabsLogin button.ativa{background:var(--verde);color:#fff;}
+footer{text-align:center;color:var(--sub);font-size:.75rem;padding:20px;}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+<header>
+  <h1>⚽ FutSassemburg</h1>
+  <p>Bolão de palpites entre a turma · 6 torneios</p>
+</header>
+<div class="wrap" id="app"><div class="card"><p class="msg">Carregando...</p></div></div>
+<footer>FutSassemburg · Grok, Mundial e Glória (reais) · Strike, Mundial e Bisteca (fictícios) · grupos de 20</footer>
+
+<script>
+const TAMANHO_GRUPO = 20;
+const TORNEIOS = [
+  {id:'grok', base:'grok', nome:'Grok', trofeu:'🏆', reqTop:null, desc:'Torneio principal — todo mundo participa.', ficticio:false},
+  {id:'mundial', base:'grok', nome:'Mundial', trofeu:'🌍', reqTop:8, desc:'Só joga quem termina entre 1º e 8º do grupo no Grok.', ficticio:false},
+  {id:'gloria', base:'grok', nome:'Glória', trofeu:'👑', reqTop:16, desc:'Só joga quem termina entre 1º e 16º do grupo no Grok.', ficticio:false},
+  {id:'strike', base:'strike', nome:'Strike', trofeu:'⭐', reqTop:null, desc:'Torneio fictício principal — jogos e resultados são gerados automaticamente.', ficticio:true},
+  {id:'fictmundial', base:'strike', nome:'Mundial (fictício)', trofeu:'🌐', reqTop:8, desc:'Fictício. Só joga quem termina entre 1º e 8º do grupo no Strike.', ficticio:true},
+  {id:'bisteca', base:'strike', nome:'Bisteca', trofeu:'🥩', reqTop:16, desc:'Fictício. Só joga quem termina entre 1º e 16º do grupo no Strike.', ficticio:true}
+];
+const FICT_TIMES = ['Rio Branco FC','Estrela FC','Bota Fé','Vacilão EC','Guerreiros FC','Anaconda FC','Leão EH','Hidan FC','Boo EC','Morte FC','Uva EH','Escorpião EH','Amigo da Onça FC','Peneira EC','Brisola','Sassemburg','Capa FC','Terno EC','Viajou EH','Brasil'];
+function gerarRodadasFict(){
+  const n=FICT_TIMES.length; let arr=[...Array(n).keys()]; const rodadas=[];
+  for(let r=0;r<n-1;r++){
+    const pares=[]; for(let i=0;i<n/2;i++){ pares.push([arr[i],arr[n-1-i]]); }
+    rodadas.push(pares);
+    const last=arr.pop(); arr.splice(1,0,last);
+  }
+  return rodadas;
+}
+const FICT_RODADAS = gerarRodadasFict();
+const CAPACIDADES = [20,50,100,150];
+function calcularInstancia(cap){
+  const membrosTipo = salaMembros.filter(m=>m.cap===cap);
+  let i=1;
+  while(membrosTipo.filter(m=>m.instancia===i).length >= cap) i++;
+  return i;
+}
+function instanciaAtualParaMim(cap){
+  const meu = salaMembros.find(m=>m.cap===cap && m.uid===me);
+  return meu ? meu.instancia : calcularInstancia(cap);
+}
+function instanciasExistentes(cap){
+  const membrosTipo = salaMembros.filter(m=>m.cap===cap);
+  const max = membrosTipo.reduce((mx,m)=>Math.max(mx,m.instancia||1),1);
+  const lista=[];
+  for(let i=1;i<=max;i++) lista.push({num:i, count:membrosTipo.filter(m=>m.instancia===i).length});
+  return lista;
+}
+const EMOJIS = ['⚽','🔥','👏','😂','😮','🎉','💪','👍','👎','❌','✅','🏆','😅','😭','🤔','👀','🥳','😡','🙌','⭐'];
+const ADMIN_EMAIL = 'claudineihonorio2020@gmail.com';
+
+// ======= COLE AQUI A CONFIGURAÇÃO DO SEU PROJETO FIREBASE =======
+const firebaseConfig = {
+  apiKey: "AIzaSyDr9vzFQPHnjHv5tfYxUZXRqeIk3ymqNu0",
+  authDomain: "futsassemburg.firebaseapp.com",
+  projectId: "futsassemburg",
+  storageBucket: "futsassemburg.firebasestorage.app",
+  messagingSenderId: "719868323935",
+  appId: "1:719868323935:web:ddac764f3e5deb84bfd3ea"
+};
+// ==================================================================
+
+let db=null, me=null, isAdmin=false, meuEmail=null, authModo='login', assinado=false;
+let presenca=[], batimentoTimer=null;
+function contarOnline(){ return presenca.filter(p=>Date.now()-p.ts<75000).length; }
+async function batimento(){ if(!me) return; try{ await db.doc('presenca/'+me).set({uid:me, ts:Date.now()}); }catch(e){} }
+function iniciarPresenca(){
+  batimento();
+  if(batimentoTimer) clearInterval(batimentoTimer);
+  batimentoTimer = setInterval(()=>{ batimento(); const el=document.getElementById('onlineCount'); if(el) el.textContent=contarOnline(); }, 30000);
+}
+let games=[], guesses=[], players=[], chatMsgs=[], salaMembros=[], salaTipoAtual=20, avisoFixado=null;
+
+function makeDbShim(firestore){
+  return {
+    doc(path){
+      const ref = firestore.doc(path);
+      return {
+        set:(data)=>ref.set(data),
+        update:(data)=>ref.update(data),
+        delete:()=>ref.delete(),
+        onSnapshot(cb){ return ref.onSnapshot(snap=>{ cb(snap.exists?{id:snap.id,data:snap.data()}:null); }); }
+      };
+    },
+    collection(name){
+      const ref = firestore.collection(name);
+      return { onSnapshot(cb){ return ref.onSnapshot(snap=>{ cb(snap.docs.map(d=>({id:d.id, data:d.data()}))); }); } };
+    }
+  };
+}
+function meuNome(){ const p = players.find(x=>x.uid===me); return p ? p.name : 'Jogador'; }
+
+const app = document.getElementById('app');
+
+function fmtData(d){ if(!d) return ''; try{ return new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return d; } }
+function ord(n){ return n+'º'; }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function pontosJogo(jogo, palpite){
+  if(jogo.homeScore==null || jogo.awayScore==null || !palpite) return 0;
+  const hs=jogo.homeScore, as=jogo.awayScore, ph=palpite.home, pa=palpite.away;
+  if(ph==null||pa==null) return 0;
+  if(ph===hs && pa===as) return 3;
+  const real = hs>as?'C':hs<as?'F':'E', pal = ph>pa?'C':ph<pa?'F':'E';
+  return real===pal ? 1 : 0;
+}
+function achaPalpite(g, uid, tid){
+  const c=guesses.filter(x=>x.gameId===g.id && x.uid===uid && (x.torneio||g.torneio||'grok')===tid);
+  if(!c.length) return null;
+  return c.reduce((a,b)=>(b.ts||0)>(a.ts||0)?b:a);
+}
+function torneioPontos(uid, tid){
+  const t=torneioCfg(tid); const fonte=t?fonteJogos(t):tid; let pts=0;
+  games.filter(g=>(g.torneio||'grok')===fonte).forEach(g=>{ pts+=pontosJogo(g, achaPalpite(g,uid,tid)); });
+  return pts;
+}
+function torneioCfg(id){ return TORNEIOS.find(x=>x.id===id); }
+function fonteJogos(t){ return (t.ficticio && t.base!==t.id) ? t.base : t.id; }
+function standingsBase(baseId){
+  const porGrupo = {};
+  players.forEach(p=>{
+    const grp = p.group||1;
+    (porGrupo[grp]=porGrupo[grp]||[]).push({...p, pts:torneioPontos(p.uid,baseId)});
+  });
+  Object.values(porGrupo).forEach(a=>a.sort((x,y)=>y.pts-x.pts));
+  return porGrupo;
+}
+function rankEmBase(uid, baseId){
+  const gs = standingsBase(baseId);
+  for(const g of Object.values(gs)){ const i=g.findIndex(p=>p.uid===uid); if(i>-1) return i+1; }
+  return null;
+}
+function qualificados(baseId, reqTop){
+  const gs = standingsBase(baseId); const lista=[];
+  Object.keys(gs).sort((a,b)=>a-b).forEach(g=>{ gs[g].forEach((p,i)=>{ if(i<reqTop) lista.push(p); }); });
+  return lista;
+}
+function gruposDoTorneio(torneioId){
+  const t = torneioCfg(torneioId);
+  const grupos = {};
+  const fonte = fonteJogos(t);
+  if(t.base===t.id){
+    players.forEach(p=>{
+      const grp = p.group||1;
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,t.id)});
+    });
+  } else {
+    qualificados(t.base, t.reqTop).forEach((p,idx)=>{
+      const grp = Math.floor(idx/TAMANHO_GRUPO)+1;
+      (grupos[grp]=grupos[grp]||[]).push({...p, pts:torneioPontos(p.uid,t.id)});
+    });
+  }
+  Object.values(grupos).forEach(a=>a.sort((x,y)=>y.pts-x.pts));
+  return grupos;
+}
+function elegivel(uid, torneioId){
+  const t = torneioCfg(torneioId);
+  if(t.base===t.id) return true;
+  const r = rankEmBase(uid, t.base);
+  return r!=null && r<=t.reqTop;
+}
+function trofeusResumo(trophies){
+  if(!trophies||!trophies.length) return '';
+  const contagem={};
+  trophies.forEach(t=>{ const icon=trofeuIcon(t); contagem[icon]=(contagem[icon]||0)+1; });
+  return Object.entries(contagem).map(([icon,qtd])=>icon+(qtd>1?' x'+qtd:'')).join(' ');
+}
+function trofeuIcon(tr){
+  const mapa={grok:'🏆',mundial:'🌍',gloria:'👑',strike:'⭐',fictmundial:'🌐',bisteca:'🥩'};
+  return mapa[tr.torneio]||'🏆';
+}
+function palpitesFechados(g){ return !!g.fechado; }
+
+function render(){
+  const meuPlayer = me ? players.find(p=>p.uid===me) : null;
+  let html = '';
+
+  if(avisoFixado){
+    html += `<div class="card" style="border-color:var(--ouro);"><h2>📌 Aviso</h2>
+      <p class="msg" style="white-space:pre-wrap;color:var(--texto);">${escapeHtml(avisoFixado.text)}</p>
+      ${isAdmin?`<button class="sec" onclick="apagarAviso()">🗑️ Apagar aviso</button>`:''}
+    </div>`;
+  }
+
+  html += `<div class="card"><h2>ℹ️ Como funciona o jogo</h2>
+    <p class="msg">✅ Acertou o placar exato: <b>+3 pontos</b><br>✅ Acertou só quem venceu (ou o empate), mas não o placar: <b>+1 ponto</b><br>❌ Errou tudo: 0 pontos.</p></div>`;
+
+  html += `<div class="card"><span class="badge">${players.length} jogador(es) cadastrados</span> <span class="badge" style="background:#d9f2df;color:#0a5c2b;">🟢 <span id="onlineCount">${contarOnline()}</span> online agora</span>
+    <p class="msg">Você é <b>${meuNome()}</b> (${meuEmail||''})${isAdmin?' — <b>Administrador</b>':''}</p>
+    <div class="linha-form"><button class="sec" onclick="sairDaConta()">Sair da conta</button></div></div>`;
+
+  if(isAdmin){
+    html += `<div class="card"><h2>📌 Mensagem fixada (aviso geral)</h2>
+      <div class="linha-form"><input type="text" id="avisoInput" placeholder="Escreva um aviso para todos" value="${escapeHtml(avisoFixado?avisoFixado.text:'')}"></div>
+      <div class="linha-form">
+        <button onclick="salvarAviso()">📌 Fixar mensagem</button>
+        ${avisoFixado?`<button class="sec" onclick="apagarAviso()">🗑️ Apagar aviso</button>`:''}
+      </div></div>`;
+  }
+
+  if(!meuPlayer){
+    html += `<div class="card"><h2>🙋 Criar perfil</h2>
+      <p class="msg">Escolha o nome que vai aparecer nos rankings, no chat e nos troféus.</p>
+      <div class="linha-form">
+        <input type="text" id="nickInput" placeholder="Seu nome no bolão">
+        <button onclick="criarPerfil()">Criar perfil</button>
+      </div>
+    </div>`;
+  } else {
+    const meusTrofeus = meuPlayer.trophies||[];
+    html += `<div class="card"><h2>🙋 Meu perfil</h2>
+      <p class="msg">Nome: <b>${escapeHtml(meuPlayer.name)}</b></p>
+      <h3>Meus troféus (${meusTrofeus.length} no total)</h3>
+      ${meusTrofeus.length? TORNEIOS.map(tt=>{ const q=meusTrofeus.filter(x=>x.torneio===tt.id); return q.length? `<p class="msg"><b>${tt.nome}</b>: ${q.length} troféu${q.length>1?'s':''}<br><span style="font-size:1.3rem;">${q.map(trofeuIcon).join(' ')}</span></p>` : ''; }).join('') : '<p class="msg">Nenhum troféu ainda. Boa sorte! 🍀</p>'}
+    </div>`;
+  }
+
+  TORNEIOS.forEach(t=>{
+    const fonteT = fonteJogos(t);
+    const abertos = games.filter(g=>(g.torneio||'grok')===fonteT && g.homeScore==null).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const encerrados = games.filter(g=>(g.torneio||'grok')===fonteT && g.homeScore!=null).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const grupos = gruposDoTorneio(t.id);
+    const souElegivel = me ? elegivel(me, t.id) : false;
+
+    html += `<div class="card"><h2><span class="torneio-tag">${t.trofeu}</span>Torneio ${t.nome}</h2><p class="msg">${t.desc}</p>`;
+    if(t.ficticio){
+      html += `<p class="msg" style="font-size:.72rem;">⚠️ Torneio fictício, apenas para diversão. As rodadas abrem para palpite às 1h da manhã, fecham às 18h, e o resultado sai às 19h, automaticamente.</p>`;
+    }
+
+    if(isAdmin && t.ficticio){
+      html += `<h3>Painel do administrador — ${t.nome} (automático)</h3>
+        <p class="msg">Ciclo ${estadoFict?estadoFict.ciclo:'-'} · Rodada ${estadoFict?estadoFict.rodada:'-'}/19 · Fase: ${estadoFict?estadoFict.fase:'-'}</p>
+        <p class="msg">Os jogos são gerados, fechados e revelados automaticamente. Se precisar, você pode adiantar manualmente:</p>
+        <div class="linha-form">
+          <button class="sec" onclick="adminForcar('fechar')">🔒 Fechar palpites agora</button>
+          <button class="sec" onclick="adminForcar('revelar')">📊 Revelar resultado agora</button>
+          <button class="sec" onclick="adminForcar('proxima')">⏭️ Abrir próxima rodada agora</button>
+        </div>`;
+    }
+    if(isAdmin && !t.ficticio){
+      html += `<h3>Painel do administrador — ${t.nome}</h3>
+        <div class="linha-form">
+          <input type="text" id="home_${t.id}" placeholder="Time da casa">
+          <input type="text" id="away_${t.id}" placeholder="Time visitante">
+        </div>
+        <div class="linha-form">
+          <button onclick="criarJogo('${t.id}')">+ Criar jogo</button>
+        </div>
+        ${abertos.map(g=>`
+          <div class="jogo"><div class="linha"><span class="times">${g.home} x ${g.away}${g.rodadaFict?' · Rodada '+g.rodadaFict:''}</span><span class="pill ${palpitesFechados(g)?'status-fechado':'status-aberto'}">${palpitesFechados(g)?'Palpites fechados':'Palpites abertos'}</span></div>
+          <div class="linha-form" style="margin-top:6px;">
+            <input type="number" min="0" id="rh_${g.id}" placeholder="0"><span>x</span><input type="number" min="0" id="ra_${g.id}" placeholder="0">
+            <button onclick="lancarResultado('${g.id}')">Lançar</button>
+          </div>
+          <div class="linha-form">
+            <button class="sec" onclick="alternarFechado('${g.id}',${!g.fechado})">${g.fechado?'🔓 Reabrir palpites':'🔒 Fechar palpites'}</button>
+            <button class="sec" onclick="excluirJogo('${g.id}')">Excluir</button>
+          </div></div>`).join('')}
+        <p class="msg" style="margin-top:10px;">Premiar campeão (dá ${t.trofeu} no perfil do líder atual):</p>
+        <div class="linha-form">
+          ${Object.keys(grupos).map(n=>`<button class="sec" onclick="premiarGrupo('${t.id}',${n})">${t.trofeu} Grupo ${n}</button>`).join('')}
+          ${Object.keys(grupos).length>1?`<button onclick="premiarTodos('${t.id}')">${t.trofeu} Premiar todos os grupos</button>`:''}
+        </div>`;
+    }
+
+    html += `<h3>Jogos em aberto</h3>`;
+    if(!abertos.length) html += `<p class="msg">Nenhum jogo aberto agora.</p>`;
+    abertos.forEach(g=>{
+      const meuPalpite = me ? achaPalpite(g, me, t.id) : null;
+      const fechado = palpitesFechados(g);
+      html += `<div class="jogo"><div class="linha"><span class="times">${g.home} x ${g.away}${g.rodadaFict?' · Rodada '+g.rodadaFict:''}</span><span class="pill ${fechado?'status-fechado':'status-aberto'}">${fechado?'Palpites fechados':'Aberto'}</span></div>`;
+      if(!meuPlayer){ html += `<p class="bloqueado">Crie seu perfil acima para palpitar.</p>`; }
+      else if(!souElegivel){ html += `<p class="bloqueado">🔒 Você não está classificado para o ${t.nome}.</p>`; }
+      else if(fechado){
+        html += meuPalpite ? `<p class="msg">Seu palpite: ${meuPalpite.home} x ${meuPalpite.away} (aguardando resultado)</p>` : `<p class="bloqueado">🔒 Palpites encerrados para este jogo.</p>`;
+      }
+      else{
+        html += `<div class="linha-form" style="margin-top:8px;">
+          <input type="number" min="0" id="ph_${t.id}_${g.id}" value="${meuPalpite?meuPalpite.home:''}" placeholder="0"><span>x</span>
+          <input type="number" min="0" id="pa_${t.id}_${g.id}" value="${meuPalpite?meuPalpite.away:''}" placeholder="0">
+          <button onclick="salvarPalpite('${g.id}','${t.id}')">${meuPalpite?'Atualizar':'Palpitar'}</button>
+        </div>`;
+      }
+      html += `</div>`;
+    });
+
+    if(encerrados.length){
+      html += `<h3>Resultados</h3>`;
+      encerrados.forEach(g=>{
+        const meuPalpite = me ? achaPalpite(g, me, t.id) : null;
+        const pts = meuPalpite ? pontosJogo(g, meuPalpite) : null;
+        html += `<div class="jogo"><div class="linha"><span class="times">${g.home} ${g.homeScore} x ${g.awayScore} ${g.away}</span><span class="pill status-fechado">Encerrado</span></div>
+        ${meuPalpite? `<div class="msg">Seu palpite: ${meuPalpite.home} x ${meuPalpite.away} — ${pts} ponto(s)</div>`:''}</div>`;
+      });
+    }
+
+    html += `<h3>Classificação</h3>`;
+    const chaves = Object.keys(grupos).sort((a,b)=>a-b);
+    if(!chaves.length){ html += `<p class="msg">Ainda não há classificados para este torneio.</p>`; }
+    chaves.forEach(n=>{
+      const lista = grupos[n];
+      html += `<p class="msg"><b>Grupo ${n}</b> (${lista.length}/${TAMANHO_GRUPO})</p>
+        <table><tr><th>Pos.</th><th>Jogador</th><th>Pts</th><th>Troféus</th></tr>
+        ${lista.map((p,i)=>`<tr><td class="${i===0?'pos1':''}">${ord(i+1)}</td><td>${p.name}${p.uid===me?' (você)':''}</td><td>${p.pts}</td><td>${(p.trophies||[]).map(trofeuIcon).join('')||'—'}</td></tr>`).join('')}
+        </table>`;
+    });
+    html += `</div>`;
+  });
+
+  const minhaInstancia = instanciaAtualParaMim(salaTipoAtual);
+  const msgsSala = chatMsgs.filter(m=>m.cap===salaTipoAtual && m.instancia===minhaInstancia);
+  const instancias = instanciasExistentes(salaTipoAtual);
+  html += `<div class="card"><h2>💬 Chat da turma</h2>
+    <div class="salas">${CAPACIDADES.map(c=>`<button class="${c===salaTipoAtual?'ativa':''}" onclick="escolherTipoSala(${c})">Sala ${c}</button>`).join('')}</div>
+    <p class="msg">${instancias.length>1?`Existem ${instancias.length} turmas na Sala ${salaTipoAtual}. `:''}Você está na <b>Turma ${minhaInstancia}</b> (${(salaMembros.filter(m=>m.cap===salaTipoAtual&&m.instancia===minhaInstancia).length)}/${salaTipoAtual}).</p>
+    <div id="chatBox">${msgsSala.length? msgsSala.map(m=>`<div class="msgChat ${m.uid===me?'mine':''}"><b>${escapeHtml(m.name||'Jogador')}:</b> ${escapeHtml(m.text)}<span class="hora">${fmtData(m.ts)}</span></div>`).join('') : '<p class="msg">Nenhuma mensagem ainda nesta turma. Diga oi! 👋</p>'}</div>
+    ${meuPlayer? `
+    <div class="emojis">${EMOJIS.map(e=>`<button onclick="inserirEmoji('${e}')">${e}</button>`).join('')}</div>
+    <div class="linha-form"><input type="text" id="chatInput" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter'){enviarChat();}"><button onclick="enviarChat()">Enviar</button></div>` : `<p class="bloqueado">Crie seu perfil acima para conversar no chat.</p>`}
+  </div>`;
+
+  app.innerHTML = html;
+  const cb = document.getElementById('chatBox'); if(cb) cb.scrollTop = cb.scrollHeight;
+}
+
+async function criarPerfil(){
+  const nome = document.getElementById('nickInput').value.trim() || 'Jogador';
+  const grupo = Math.floor(players.length/TAMANHO_GRUPO)+1;
+  try{ await db.doc('players/'+me).set({uid:me,name:nome,joinedAt:Date.now(),group:grupo,trophies:[]}); }
+  catch(e){ alert('Não foi possível criar o perfil.'); }
+}
+async function criarJogo(torneioId){
+  const home=document.getElementById('home_'+torneioId).value.trim();
+  const away=document.getElementById('away_'+torneioId).value.trim();
+  if(!home||!away) return alert('Preencha os dois times.');
+  const id='g_'+Date.now();
+  try{ await db.doc('games/'+id).set({home,away,torneio:torneioId,ts:Date.now(),homeScore:null,awayScore:null}); }
+  catch(e){ alert('Erro ao criar jogo.'); }
+}
+async function excluirJogo(id){ if(!confirm('Excluir este jogo?')) return; try{ await db.doc('games/'+id).delete(); }catch(e){ alert('Erro ao excluir.'); } }
+async function alternarFechado(id, fechar){
+  try{ await db.doc('games/'+id).update({fechado:fechar}); }catch(e){ alert('Erro ao atualizar.'); }
+}
+async function lancarResultado(id){
+  const h=document.getElementById('rh_'+id).value, a=document.getElementById('ra_'+id).value;
+  if(h===''||a==='') return alert('Informe o placar final.');
+  try{ await db.doc('games/'+id).update({homeScore:parseInt(h),awayScore:parseInt(a)}); }catch(e){ alert('Erro ao lançar resultado.'); }
+}
+async function salvarPalpite(gameId, tid){
+  const meuPlayer = players.find(p=>p.uid===me);
+  if(!meuPlayer) return alert('Crie seu perfil primeiro.');
+  if(!elegivel(me, tid)) return alert('Você não está classificado para este torneio.');
+  const jogo = games.find(g=>g.id===gameId);
+  if(jogo && palpitesFechados(jogo)) return alert('Os palpites para este jogo já estão fechados.');
+  const h=document.getElementById('ph_'+tid+'_'+gameId).value, a=document.getElementById('pa_'+tid+'_'+gameId).value;
+  if(h===''||a==='') return alert('Preencha os dois placares.');
+  try{ await db.doc('guesses/'+gameId+'__'+tid+'__'+me).set({gameId,torneio:tid,uid:me,home:parseInt(h),away:parseInt(a),ts:Date.now()}); }
+  catch(e){ alert('Não foi possível salvar seu palpite.'); }
+}
+async function darTrofeu(uid, obj){
+  await db.doc('players/'+uid).update({trophies: firebase.firestore.FieldValue.arrayUnion({...obj, id:Math.random().toString(36).slice(2,9)})});
+}
+async function premiarGrupo(torneioId, grupo){
+  const grupos = gruposDoTorneio(torneioId);
+  const lista = grupos[grupo];
+  if(!lista||!lista.length) return alert('Grupo vazio.');
+  const maxPts = lista[0].pts;
+  const vencedores = lista.filter(p=>p.pts===maxPts);
+  const t = TORNEIOS.find(t=>t.id===torneioId);
+  const nomes = vencedores.map(v=>v.name).join(', ');
+  if(!confirm(`Dar ${t.trofeu} para ${nomes} (líder${vencedores.length>1?'es empatados':''} do Grupo ${grupo} do ${t.nome} com ${maxPts} pts)?`)) return;
+  try{
+    for(const v of vencedores){
+      await darTrofeu(v.uid,{ts:Date.now(),torneio:torneioId,grupo});
+    }
+  }catch(e){ alert('Erro ao premiar.'); }
+}
+async function premiarTodos(torneioId){
+  const grupos = gruposDoTorneio(torneioId);
+  const t = TORNEIOS.find(t=>t.id===torneioId);
+  const campeoes = Object.keys(grupos).map(n=>{
+    const lista = grupos[n]; if(!lista.length) return null;
+    const maxPts = lista[0].pts;
+    return {grupo:n, vencedores: lista.filter(p=>p.pts===maxPts)};
+  }).filter(Boolean);
+  if(!campeoes.length) return alert('Não há classificados ainda.');
+  const resumo = campeoes.map(c=>`Grupo ${c.grupo}: ${c.vencedores.map(v=>v.name).join(', ')}`).join('\n');
+  if(!confirm(`Dar ${t.trofeu} para os líderes (ou empatados) de todos os grupos do ${t.nome}?\n\n${resumo}`)) return;
+  try{
+    for(const c of campeoes){
+      for(const v of c.vencedores){
+        await darTrofeu(v.uid,{ts:Date.now(),torneio:torneioId,grupo:c.grupo});
+      }
+    }
+  }catch(e){ alert('Erro ao premiar alguns campeões.'); }
+}
+
+// ===== Motor automático dos torneios fictícios (Strike / Mundial fictício / Bisteca) =====
+let estadoFict=null, placaresAnteriores={}, ficticioTimer=null;
+const carregou={games:false,guesses:false,players:false,estado:false};
+function tudoCarregado(){ return carregou.games&&carregou.guesses&&carregou.players&&carregou.estado; }
+function dataChaveHoje(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function jogosDaRodada(ciclo,rodada){ return games.filter(g=>g.cicloFict===ciclo && g.rodadaFict===rodada); }
+function pontosDaRodada(uid, tid, jogos){ let pts=0; jogos.forEach(g=>{ pts+=pontosJogo(g, achaPalpite(g,uid,tid)); }); return pts; }
+async function premiarAutomaticoFicticio(ciclo, rodada, jogos){
+  for(const t of TORNEIOS.filter(x=>x.ficticio)){
+    const grupos = gruposDoTorneio(t.id);
+    for(const n of Object.keys(grupos)){
+      const lista = grupos[n].map(p=>({...p, ptsRodada: pontosDaRodada(p.uid, t.id, jogos)}));
+      if(!lista.length) continue;
+      const maxPts = Math.max(...lista.map(p=>p.ptsRodada));
+      if(maxPts<=0) continue;
+      for(const v of lista.filter(p=>p.ptsRodada===maxPts)){
+        try{ await darTrofeu(v.uid,{ts:Date.now(),torneio:t.id,grupo:n,ciclo,rodada}); }catch(e){}
+      }
+    }
+  }
+}
+async function txEstado(condicao, mudancas){
+  const fs=firebase.firestore(); const ref=fs.doc('ficticio/estado');
+  return fs.runTransaction(async tx=>{
+    const snap=await tx.get(ref); const e=snap.exists?snap.data():null;
+    if(!condicao(e)) return false;
+    tx.set(ref,{...(e||{}),...mudancas}); return true;
+  });
+}
+async function fecharJogos(ciclo,rodada){
+  for(const g of jogosDaRodada(ciclo,rodada)){ if(!g.fechado) await db.doc('games/'+g.id).update({fechado:true}); }
+}
+async function gerarResultados(ciclo,rodada,premiar){
+  const jogos=jogosDaRodada(ciclo,rodada); const mapa={...placaresAnteriores}; const prontos=[];
+  for(const g of jogos){
+    let h=g.homeScore, a=g.awayScore;
+    if(h==null){
+      let n=0;
+      do{ h=Math.floor(Math.random()*5); a=Math.floor(Math.random()*5); n++; }while(mapa[g.chaveFict]===(h+'-'+a) && n<50);
+      await db.doc('games/'+g.id).update({homeScore:h,awayScore:a,fechado:true});
+      mapa[g.chaveFict]=h+'-'+a;
+    }
+    prontos.push({...g,homeScore:h,awayScore:a});
+  }
+  await db.doc('ficticio/ultimosPlacares').set({mapa});
+  if(premiar) await premiarAutomaticoFicticio(ciclo,rodada,prontos);
+}
+async function abrirRodada(anterior, hoje){
+  const rodadaAnt=anterior.rodada||0; let nova, ciclo=anterior.ciclo||1;
+  if(rodadaAnt>=19){ nova=1; ciclo++; } else { nova=rodadaAnt+1; }
+  const jaExiste = await firebase.firestore().doc('games/fict_'+ciclo+'_'+nova+'_0').get();
+  if(!jaExiste.exists){
+    const pares=FICT_RODADAS[nova-1];
+    for(let idx=0; idx<pares.length; idx++){
+      const [hi,ai]=pares[idx];
+      await db.doc('games/fict_'+ciclo+'_'+nova+'_'+idx).set({
+        home:FICT_TIMES[hi], away:FICT_TIMES[ai], torneio:'strike',
+        rodadaFict:nova, cicloFict:ciclo, chaveFict:'r'+nova+'_m'+idx,
+        ts:Date.now(), homeScore:null, awayScore:null, fechado:false
+      });
+    }
+  }
+  await db.doc('ficticio/estado').set({ciclo, rodada:nova, diaChave:hoje, fase:'aberta'});
+}
+async function finalizarRodada(e0){
+  if(!(e0.rodada>0)) return;
+  if(e0.fase==='resultado'){ await gerarResultados(e0.ciclo,e0.rodada,false); return; }
+  await fecharJogos(e0.ciclo,e0.rodada);
+  await gerarResultados(e0.ciclo,e0.rodada,true);
+}
+async function tickFicticio(){
+  if(!db || !me || !tudoCarregado()) return;
+  try{
+    if(!estadoFict){ await txEstado(e=>!e,{ciclo:1,rodada:0,diaChave:'',fase:'nenhuma'}); return; }
+    const hoje=dataChaveHoje(), hora=new Date().getHours(), e0={...estadoFict};
+    const travado = e=>e.fase==='processando' && Date.now()-(e.procTs||0)<=180000;
+
+    if(hora>=1 && e0.diaChave!==hoje && !travado(e0)){
+      const ok=await txEstado(e=>e && e.diaChave!==hoje && !travado(e),{fase:'processando',procTs:Date.now()});
+      if(!ok) return;
+      await finalizarRodada(e0);
+      await abrirRodada(e0,hoje);
+      return;
+    }
+    if(hora>=18 && e0.fase==='aberta' && e0.diaChave===hoje){
+      const ok=await txEstado(e=>e && e.fase==='aberta' && e.diaChave===hoje,{fase:'fechada'});
+      if(!ok) return;
+      await fecharJogos(e0.ciclo,e0.rodada);
+      if(hora>=19) setTimeout(tickFicticio,2000);
+      return;
+    }
+    if(hora>=19 && e0.fase==='fechada' && e0.diaChave===hoje){
+      const ok=await txEstado(e=>e && e.fase==='fechada' && e.diaChave===hoje,{fase:'resultado'});
+      if(!ok) return;
+      await gerarResultados(e0.ciclo,e0.rodada,true);
+      return;
+    }
+  }catch(e){ console.error(e); }
+}
+async function adminForcar(acao){
+  if(!isAdmin || !estadoFict) return;
+  const e0={...estadoFict}, hoje=dataChaveHoje();
+  const msgs={fechar:'Fechar os palpites da rodada atual agora?',revelar:'Fechar palpites, revelar os resultados e entregar troféus da rodada atual agora?',proxima:'Finalizar a rodada atual (se ainda não foi) e abrir a próxima rodada agora?'};
+  if(!confirm(msgs[acao])) return;
+  try{
+    if(acao==='fechar'){
+      if(e0.fase!=='aberta') return alert('A rodada não está aberta.');
+      if(await txEstado(e=>e.fase==='aberta',{fase:'fechada'})) await fecharJogos(e0.ciclo,e0.rodada);
+    } else if(acao==='revelar'){
+      if(!(e0.rodada>0) || e0.fase==='resultado') return alert('Não há resultado pendente.');
+      if(await txEstado(e=>e.fase!=='resultado',{fase:'resultado'})){ await fecharJogos(e0.ciclo,e0.rodada); await gerarResultados(e0.ciclo,e0.rodada,true); }
+    } else if(acao==='proxima'){
+      if(await txEstado(e=>e && e.fase!=='processando',{fase:'processando',procTs:Date.now()})){
+        await finalizarRodada(e0);
+        await abrirRodada(e0,hoje);
+      }
+    }
+  }catch(e){ alert('Erro ao executar. Tente de novo.'); }
+}
+function iniciarMotorFicticio(){
+  tickFicticio();
+  if(ficticioTimer) clearInterval(ficticioTimer);
+  ficticioTimer = setInterval(tickFicticio, 60000);
+}
+
+function escolherTipoSala(cap){ salaTipoAtual=cap; render(); }
+function inserirEmoji(e){
+  const input=document.getElementById('chatInput'); if(!input) return;
+  input.value += e; input.focus();
+}
+async function enviarChat(){
+  if(!players.find(p=>p.uid===me)) return alert('Crie seu perfil primeiro.');
+  const input=document.getElementById('chatInput'); const texto=input.value.trim();
+  if(!texto) return;
+  const cap = salaTipoAtual;
+  const jaEhMembro = salaMembros.find(m=>m.cap===cap && m.uid===me);
+  const instancia = jaEhMembro ? jaEhMembro.instancia : calcularInstancia(cap);
+  input.value='';
+  const nome = meuNome();
+  try{
+    if(!jaEhMembro){ await db.doc('salaMembros/'+cap+'_'+instancia+'__'+me).set({cap,instancia,uid:me,name:nome,ts:Date.now()}); }
+    const id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    await db.doc('chat/'+id).set({cap,instancia,uid:me,name:nome,text:texto,ts:Date.now()});
+  }catch(e){ alert('Não foi possível enviar a mensagem.'); }
+}
+
+function renderLogin(){
+  app.innerHTML = `<div class="loginWrap"><div class="card">
+    <h2 style="text-align:center;">⚽ FutSassemburg</h2>
+    <div class="tabsLogin">
+      <button class="${authModo==='login'?'ativa':''}" onclick="trocarModoAuth('login')">Entrar</button>
+      <button class="${authModo==='signup'?'ativa':''}" onclick="trocarModoAuth('signup')">Criar conta</button>
+    </div>
+    <div class="linha-form"><input type="text" id="authEmail" placeholder="E-mail"></div>
+    <div class="linha-form"><input type="text" id="authSenha" placeholder="Senha (mín. 6 caracteres)"></div>
+    <div class="linha-form"><button onclick="${authModo==='login'?'fazerLogin()':'criarConta()'}" style="width:100%;">${authModo==='login'?'Entrar':'Criar conta'}</button></div>
+    ${authModo==='login'?`<p class="msg" style="text-align:center;"><a href="#" onclick="recuperarSenha();return false;" style="color:var(--verde);">Esqueci minha senha</a></p>`:''}
+    <p class="msg" id="authMsg" style="text-align:center;"></p>
+  </div></div>`;
+}
+async function recuperarSenha(){
+  const email = document.getElementById('authEmail').value.trim();
+  if(!email) return alert('Digite seu e-mail no campo acima primeiro.');
+  try{
+    await firebase.auth().sendPasswordResetEmail(email);
+    document.getElementById('authMsg').textContent = 'E-mail de recuperação enviado! Verifique sua caixa de entrada.';
+  }catch(e){ document.getElementById('authMsg').textContent = msgErroAuth(e.code); }
+}
+function trocarModoAuth(m){ authModo=m; renderLogin(); }
+function msgErroAuth(code){
+  const mapa = {
+    'auth/email-already-in-use':'Esse e-mail já tem uma conta. Tente entrar.',
+    'auth/invalid-email':'E-mail inválido.',
+    'auth/weak-password':'A senha precisa ter pelo menos 6 caracteres.',
+    'auth/wrong-password':'Senha incorreta.',
+    'auth/user-not-found':'Não existe conta com esse e-mail. Crie uma conta.',
+    'auth/invalid-credential':'E-mail ou senha incorretos.'
+  };
+  return mapa[code] || 'Não foi possível continuar. Tente novamente.';
+}
+async function fazerLogin(){
+  const email=document.getElementById('authEmail').value.trim();
+  const senha=document.getElementById('authSenha').value;
+  try{ await firebase.auth().signInWithEmailAndPassword(email, senha); }
+  catch(e){ document.getElementById('authMsg').textContent = msgErroAuth(e.code); }
+}
+async function criarConta(){
+  const email=document.getElementById('authEmail').value.trim();
+  const senha=document.getElementById('authSenha').value;
+  try{ await firebase.auth().createUserWithEmailAndPassword(email, senha); }
+  catch(e){ document.getElementById('authMsg').textContent = msgErroAuth(e.code); }
+}
+async function sairDaConta(){
+  if(!confirm('Sair da sua conta?')) return;
+  try{ await db.doc('presenca/'+me).delete(); }catch(e){}
+  if(ficticioTimer){ clearInterval(ficticioTimer); ficticioTimer=null; }
+  try{ await firebase.auth().signOut(); }catch(e){}
+}
+
+function iniciarAssinaturas(){
+  db.collection('games').onSnapshot(list=>{ games=list.map(d=>({id:d.id,...d.data})); carregou.games=true; render(); tickFicticio(); });
+  db.collection('guesses').onSnapshot(list=>{ guesses=list.map(d=>d.data); carregou.guesses=true; render(); });
+  db.collection('players').onSnapshot(list=>{ players=list.map(d=>d.data); carregou.players=true; render(); });
+  db.collection('chat').onSnapshot(list=>{ chatMsgs=list.map(d=>d.data).sort((a,b)=>a.ts-b.ts).slice(-300); render(); });
+  db.collection('salaMembros').onSnapshot(list=>{ salaMembros=list.map(d=>d.data); render(); });
+  db.collection('presenca').onSnapshot(list=>{ presenca=list.map(d=>d.data); const el=document.getElementById('onlineCount'); if(el) el.textContent=contarOnline(); });
+  db.doc('fixados/aviso').onSnapshot(res=>{ avisoFixado = res ? res.data : null; render(); });
+  db.doc('ficticio/estado').onSnapshot(res=>{ estadoFict = res ? res.data : null; carregou.estado=true; render(); tickFicticio(); });
+  db.doc('ficticio/ultimosPlacares').onSnapshot(res=>{ placaresAnteriores = res && res.data.mapa ? res.data.mapa : {}; });
+}
+async function salvarAviso(){
+  const texto = document.getElementById('avisoInput').value.trim();
+  if(!texto) return alert('Escreva uma mensagem.');
+  try{ await db.doc('fixados/aviso').set({text:texto, ts:Date.now()}); }catch(e){ alert('Erro ao fixar mensagem.'); }
+}
+async function apagarAviso(){
+  if(!confirm('Remover a mensagem fixada?')) return;
+  try{ await db.doc('fixados/aviso').delete(); }catch(e){ alert('Erro ao remover.'); }
+}
+
+function init(){
+  if(firebaseConfig.apiKey==='SUA_API_KEY'){
+    app.innerHTML = '<div class="card"><p class="erro">Configuração do Firebase ainda não foi preenchida no código (firebaseConfig). Veja as instruções que te enviei.</p></div>';
+    return;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db = makeDbShim(firebase.firestore());
+
+  firebase.auth().onAuthStateChanged(user=>{
+    if(!user){ me=null; assinado=false; if(batimentoTimer){clearInterval(batimentoTimer);batimentoTimer=null;} renderLogin(); return; }
+    me = user.uid; meuEmail = user.email;
+    isAdmin = (meuEmail||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    if(!assinado){ iniciarAssinaturas(); assinado=true; }
+    iniciarPresenca();
+    iniciarMotorFicticio();
+    render();
+  });
+}
+init();
+</script>
+</body>
+</html>
